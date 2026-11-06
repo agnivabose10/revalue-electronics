@@ -1,4 +1,4 @@
-# pritypriya for Streamlit
+# pritipriya for Streamlit
 
 Electronics resale estimates with transparent, basic depreciation rules, photo-quality checks, and downloadable estimates.
 

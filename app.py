@@ -9,7 +9,7 @@ import streamlit as st
 from PIL import Image, ImageStat, UnidentifiedImageError
 from pricing import CATALOG, RATES, FACTORS, estimate
 
-st.set_page_config(page_title='pritypriya — Electronics resale estimator', page_icon='♻️', layout='wide')
+st.set_page_config(page_title='pritipriya — Electronics resale estimator', page_icon='♻️', layout='wide')
 
 def money(n):
     digits = str(round(n))
@@ -54,7 +54,7 @@ def fetch_price(model):
         raise ValueError('The provider price is not recent. Enter a verified retailer price.')
     return price, str(data['source']), checked.isoformat()
 
-st.markdown('### pritypriya ↗')
+st.markdown('### pritipriya ↗')
 st.caption('MORE LIFE. LESS LANDFILL.')
 st.title('Old tech. New possibilities.')
 st.write('Find a fair starting price for your pre-loved electronics, with every adjustment explained.')
@@ -164,7 +164,7 @@ with right:
         report = {'model': old[1], 'category': old[0], 'reference_price': old[2], 'days_used': old[3], 'condition': old[4],
                   'battery': old[5], 'charger': old[6], 'box': old[7], 'source': old[8], 'created_at': st.session_state['result_date'],
                   'estimate': result, 'photo_assessment': 'Self-reported physical condition; image-quality checks only'}
-        st.download_button('↓ Download estimate', json.dumps(report, indent=2, ensure_ascii=False), 'pritypriya-estimate.json',
+        st.download_button('↓ Download estimate', json.dumps(report, indent=2, ensure_ascii=False), 'pritipriya-estimate.json',
                            mime='application/json', disabled=stale, use_container_width=True)
     with st.expander('How the simple algorithm works'):
         st.write('Reference price × 0.90 × (1 − annual depreciation)^(days / 365) × condition factor, less battery and accessory deductions.')
@@ -172,4 +172,4 @@ with right:
         st.write('Battery below 85%: deduct 0.6% per percentage point. Missing charger: 3%; missing box: 1%. Minimum retained value: 3%. Round to ₹100; range ±10%; listing +8%.')
         st.caption('Illustrative rules, not a trained model. The live lookup requires a separately configured retailer-price provider.')
 st.divider()
-st.caption('Good for your pocket. Better for the planet. · pritypriya')
+st.caption('Good for your pocket. Better for the planet. · pritipriya')
