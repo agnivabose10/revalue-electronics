@@ -30,3 +30,7 @@ The original Node.js app is retained separately. This edition uses Python becaus
 python -m unittest test_pricing.py
 python test_app.py
 ```
+
+## Design assets
+
+The interface includes bundled phone and laptop photography, responsive styling, and category-aware visual cards. Keep `design.py` and the `assets/` directory in the deployment. Image sources are documented in `assets/CREDITS.md`.

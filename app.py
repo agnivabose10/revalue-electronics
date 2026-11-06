@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import streamlit as st
 from PIL import Image, ImageStat, UnidentifiedImageError
 from pricing import CATALOG, RATES, FACTORS, estimate
+from design import render_header, render_device_preview, render_tip, render_footer
 
 st.set_page_config(page_title='pritipriya — Electronics resale estimator', page_icon='♻️', layout='wide')
 
@@ -54,12 +55,9 @@ def fetch_price(model):
         raise ValueError('The provider price is not recent. Enter a verified retailer price.')
     return price, str(data['source']), checked.isoformat()
 
-st.markdown('### pritipriya ↗')
-st.caption('MORE LIFE. LESS LANDFILL.')
-st.title('Old tech. New possibilities.')
-st.write('Find a fair starting price for your pre-loved electronics, with every adjustment explained.')
+render_header()
 left, right = st.columns([1.4, 1], gap='large')
-with left:
+with left, st.container(border=True, key='device-form'):
     st.subheader('1 · Meet your device')
     category = st.selectbox('Device category', list(RATES))
     model_options = [m for m, (c, _) in CATALOG.items() if c == category]
@@ -138,7 +136,8 @@ if calculate:
         st.session_state['result'] = estimate(price, days, category, condition, battery, charger, box)
         st.session_state['result_signature'] = signature
         st.session_state['result_date'] = datetime.now(timezone.utc).isoformat()
-with right:
+with right, st.container(border=True, key='estimate-panel'):
+    render_device_preview(category)
     st.subheader('Your device’s next chapter')
     result = st.session_state.get('result')
     if not result:
@@ -171,5 +170,6 @@ with right:
         st.write('Annual depreciation: phone 25%, laptop 20%, tablet 22%, console 16%, audio 28%. Condition factors: excellent 100%, good 88%, fair 70%, poor 45%.')
         st.write('Battery below 85%: deduct 0.6% per percentage point. Missing charger: 3%; missing box: 1%. Minimum retained value: 3%. Round to ₹100; range ±10%; listing +8%.')
         st.caption('Illustrative rules, not a trained model. The live lookup requires a separately configured retailer-price provider.')
+    render_tip()
 st.divider()
-st.caption('Good for your pocket. Better for the planet. · pritipriya')
+render_footer()
