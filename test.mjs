@@ -4,7 +4,7 @@ test('transparent worked estimate',()=>{const r=estimate(input);assert.equal(r.v
 test('age, damage and missing accessories reduce value',()=>{const a=estimate(input);assert.ok(estimate({...input,days:730}).value<a.value);assert.ok(estimate({...input,condition:'fair'}).value<a.value);assert.ok(estimate({...input,battery:70,charger:false,box:false}).value<a.value);assert.ok(a.low<a.value&&a.high>a.value);});
 test('invalid inputs rejected',()=>{for(const patch of [{days:-1},{days:1.5},{price:0},{battery:101},{condition:'fake'},{category:'fake'}])assert.throws(()=>estimate({...input,...patch}));});
 function request(url,method='GET',data){return new Promise(resolve=>{const req=Readable.from(data?[JSON.stringify(data)]:[]);req.url=url;req.method=method;const res={writeHead(status,headers){this.status=status;},end(data){resolve({status:this.status,data:JSON.parse(data)});}};server.emit('request',req,res);});}
-test('API exposes sample provenance and validates estimates',async()=>{const p=await request('/api/price?q=Apple%20iPhone%2015');assert.equal(p.data.mode,'sample');assert.equal(p.data.checkedAt,null);const unknown=await request('/api/price?q=unknown');assert.equal(unknown.data.mode,'manual');const bad=await request('/api/estimate','POST',{...input,days:-1});assert.equal(bad.status,400);const good=await request('/api/estimate','POST',input);assert.equal(good.data.value,35600);});
+test('API accepts models beyond the examples without inventing current prices',async()=>{const p=await request('/api/price?q=Apple%20iPhone%2015');assert.equal(p.data.mode,'manual');assert.equal(p.data.price,null);assert.equal(p.data.checkedAt,null);const unknown=await request('/api/price?q=Fairphone%205%20256GB');assert.equal(unknown.data.mode,'manual');assert.equal(unknown.data.price,null);const models=await request('/api/models');assert.ok(models.data.brands.includes('Fairphone'));assert.equal(models.data.models[0].price,undefined);const bad=await request('/api/estimate','POST',{...input,days:-1});assert.equal(bad.status,400);const good=await request('/api/estimate','POST',input);assert.equal(good.data.value,35600);});
 
 test('Render health endpoint and bundled design assets',async()=>{
  const health=await request('/health');assert.equal(health.status,200);assert.equal(health.data.status,'ok');
@@ -14,3 +14,5 @@ test('Render health endpoint and bundled design assets',async()=>{
  const missing=await request('/assets/unknown.jpg');assert.equal(missing.status,404);
  const traversal=await request('/..%2fserver.mjs');assert.equal(traversal.status,404);
 });
+
+await import('./test-live-prices.mjs');

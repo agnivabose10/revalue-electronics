@@ -30,24 +30,40 @@ npm ci
 npm start
 ```
 
-Open http://localhost:3000. Run `npm test` for pricing, API, health, and image-serving checks.
+Open http://localhost:3000. Run `npm test` for pricing, live-provider filtering/caching, API, health, and image-serving checks.
 
-## Current price lookup
+## Live prices for any brand/model
 
-Bundled catalog prices are **illustrative, not live quotes**. A user can enter a verified current retailer price for any exact model and configuration.
+The brand and model fields accept free text: they are not limited to the example suggestions. Brand suggestions cover major phone, laptop, tablet, console and audio manufacturers; any other company can also be typed. Example model suggestions do not contain prices.
 
-For live lookup, set `PRICE_API_URL` and optionally the secret `PRICE_API_KEY` in the Render dashboard. No paid price provider is bundled. The trusted HTTPS endpoint accepts `GET ?q=<model>&currency=INR`. The backend adds `Authorization: Bearer <PRICE_API_KEY>` when configured. Expected JSON:
+### Enable Google Shopping search on Render
+
+1. Create a SerpAPI account at https://serpapi.com/ and obtain your API key. Check its current pricing and query allowance before choosing a plan.
+2. Open your Render service → **Environment** → **Add Environment Variable**.
+3. Set `SERPAPI_API_KEY` to your private key, then save and deploy.
+4. Reload the site and enter a brand plus exact model/storage/RAM. Search starts after a 1.4-second typing pause; **Search prices** also starts it immediately.
+
+The server uses SerpAPI's `google_shopping` engine with India locale. It accepts only INR listings, filters explicit used/refurbished products and common accessory listings, and requires model-token matches. It fills an exact storage/configuration match automatically when unambiguous. Otherwise, choose **Use this price** beside the matching retailer listing. The selected price, retailer link, and retrieval time are shown and included in estimate downloads. Verify stock, condition, tax and checkout price on the listing.
+
+No external service can guarantee listings for every model ever produced. Older/discontinued devices may have no new retail listings, and search results can omit or misidentify variants. When no match is available, the site requests a verified manual price. It never substitutes an illustrative catalog price for a live price.
+
+The app caches searches in memory for one hour (up to 256 entries), coalesces simultaneous identical searches, and limits uncached provider calls to 30 per minute per Node process. This reduces duplicate calls but is not a complete public-service abuse control; set provider usage limits before sharing widely. Provider keys are used only on the server. No SerpAPI account, paid plan or key is bundled or created by this repository.
+
+### Alternative custom price service
+
+If `SERPAPI_API_KEY` is absent, you can instead set `PRICE_API_URL` and optionally secret `PRICE_API_KEY` in Render. The trusted HTTPS endpoint accepts `GET ?q=<model>&category=<category>&currency=INR`, with an optional Bearer key. Expected response:
 
 ```json
 {
   "price": 59900,
   "currency": "INR",
   "source": "Retailer name / exact model and storage",
-  "checkedAt": "2026-11-06T09:00:00Z"
+  "checkedAt": "2026-11-06T09:00:00Z",
+  "url": "https://retailer.example/product"
 }
 ```
 
-Prices must have a timestamp within the last seven days. Provider keys stay on the server. Never commit `.env` files.
+The custom provider must match the exact model and configuration. Quotes older than seven days are rejected. Without either provider, users can still enter any model and a verified current price manually. Never commit keys or `.env` files.
 
 ## Simple pricing algorithm
 

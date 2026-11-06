@@ -2,32 +2,20 @@ import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {catalog,estimate} from './pricing.mjs';
+import {brands,configured,searchPrices} from './live-prices.mjs';
 const root=new URL('./public/',import.meta.url);
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 async function body(req){let data='';for await(const chunk of req){data+=chunk;if(data.length>16384)throw Error('Request is too large.');}return JSON.parse(data);}
-// Optional provider contract: GET PRICE_API_URL?q=<model>&currency=INR
-// Returns {price:number,currency:'INR',source:string,checkedAt:ISODate,url?:string}.
-// Configure a trusted server endpoint. Credentials never reach the browser.
-async function lookup(q){
- if(!process.env.PRICE_API_URL)return null;
- const url=new URL(process.env.PRICE_API_URL);if(url.protocol!=='https:')throw Error('Price provider must use HTTPS.');url.searchParams.set('q',q);url.searchParams.set('currency','INR');
- const r=await fetch(url,{headers:process.env.PRICE_API_KEY?{'Authorization':`Bearer ${process.env.PRICE_API_KEY}`}:{},signal:AbortSignal.timeout(8000)});
- if(!r.ok)throw Error('Price provider is temporarily unavailable. Enter a verified price below.');
- const d=await r.json();
- if(!Number.isFinite(d.price)||d.price<100||d.price>10000000||d.currency!=='INR'||!d.source||!d.checkedAt||!Number.isFinite(Date.parse(d.checkedAt)))throw Error('The provider did not return a valid INR price with a date and source.');
- if(Date.now()-Date.parse(d.checkedAt)>7*86400000||Date.parse(d.checkedAt)>Date.now()+300000)throw Error('The provider price is not recent. Enter a verified price below.');
- return {price:d.price,currency:'INR',source:String(d.source),checkedAt:d.checkedAt};
-}
 export const server=http.createServer(async(req,res)=>{
  try{
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/health'&&req.method==='GET')return json(res,200,{status:'ok'});
- if(url.pathname==='/api/models'&&req.method==='GET')return json(res,200,{models:catalog,liveConfigured:!!process.env.PRICE_API_URL});
+ if(url.pathname==='/api/models'&&req.method==='GET')return json(res,200,{models:catalog.map(({price,...m})=>m),brands,liveConfigured:configured(),market:'IN',currency:'INR'});
  if(url.pathname==='/api/price'&&req.method==='GET'){
  const q=url.searchParams.get('q')?.trim();if(!q||q.length>150)return json(res,400,{error:'Enter a model name (up to 150 characters).'});
- const live=await lookup(q);if(live)return json(res,200,{...live,mode:'live'});
- const model=catalog.find(m=>m.name.toLowerCase()===q.toLowerCase());
- return json(res,200,{mode:model?'sample':'manual',price:model?.price??null,source:model?'Illustrative catalog price — verify before use':'Enter a current retailer price',checkedAt:null});
+ const category=url.searchParams.get('category')||'phone';
+ const live=await searchPrices(q,category);if(live)return json(res,200,live);
+ return json(res,200,{mode:'manual',price:null,offers:[],configured:false,source:'Live pricing is not configured. Enter a verified retailer price.',checkedAt:null});
  }
  if(url.pathname==='/api/estimate'&&req.method==='POST')return json(res,200,estimate(await body(req)));
  if(req.method!=='GET')return json(res,405,{error:'Method not allowed.'});

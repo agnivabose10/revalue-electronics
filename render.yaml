@@ -9,3 +9,4 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+# To enable automatic retail lookup, add SERPAPI_API_KEY as a secret in Render Environment.
